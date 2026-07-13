@@ -114,6 +114,12 @@ export default function Home() {
           { key: "R𝖽", label: "阻尼电阻", value: fmt(result.rd, "ohm"), sub: `阻尼系数 ξ = ${damping}` },
         ];
 
+  const resultSymbols: [string, string][] = topology === "L"
+    ? [["L", ""]]
+    : topology === "LC"
+      ? [["L", "f"], ["C", "f"], ["f", "r"]]
+      : [["L", "i"], ["C", "f"], ["L", "g"], ["R", "d"]];
+
   return (
     <main>
       <header className="topbar">
@@ -138,6 +144,7 @@ export default function Home() {
                     <i className="circuit-node" />
                     <i className="circuit-wire" />
                     <span className="circuit-coil"><i /><i /><i /><i /></span>
+                    {item === "LC" && <i className="circuit-wire circuit-lc-spacer" />}
                     {item === "LCL" && <><i className="circuit-wire circuit-junction-wire" /><span className="circuit-coil"><i /><i /><i /><i /></span></>}
                     <i className="circuit-wire" />
                     <i className="circuit-node" />
@@ -177,7 +184,7 @@ export default function Home() {
           <div className="result-top"><div><span className="live-dot" /> 实时计算结果</div><span className={result.feasible ? "status ok" : "status warn"}>{result.feasible ? "参数可行" : "需要调整"}</span></div>
           <div className="current-strip"><span>额定电流 Iₙ</span><strong>{fmt(result.current, "A")}</strong><small>纹波峰峰值 {fmt(result.deltaI, "A")}</small></div>
           <div className="result-cards">
-            {resultCards.map((card) => <article key={card.key}><span className="symbol">{card.key}</span><div><small>{card.label}</small><strong>{card.value}</strong><p>{card.sub}</p></div></article>)}
+            {resultCards.map((card, index) => <article key={card.key}><span className="symbol"><i>{resultSymbols[index][0]}</i>{resultSymbols[index][1] && <sub>{resultSymbols[index][1]}</sub>}</span><div><small>{card.label}</small><strong>{card.value}</strong><p>{card.sub}</p></div></article>)}
           </div>
           <div className="checks"><h3>约束校核</h3>{result.checks.map((check) => <div key={check.label}><span className={check.ok ? "check yes" : "check no"}>{check.ok ? "✓" : "!"}</span><p><strong>{check.label}</strong><small>{check.value}</small></p></div>)}<div><span className="check neutral">M</span><p><strong>THD / 动态性能</strong><small>请将本页参数带入 MATLAB / Simulink 验证</small></p></div></div>
           <div className="result-note"><span>i</span><p><strong>工程初选提示</strong>本站不计算 THD。计算采用文档中的最恶劣纹波与无功约束；请在 MATLAB / Simulink 中继续验证谐波、控制稳定性、暂态过冲、器件容差、磁芯饱和与电网阻抗影响。</p></div>
