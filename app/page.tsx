@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Topology = "L" | "LC" | "LCL";
 type Modulation = "bipolar" | "unipolar" | "spwm3" | "svpwm";
@@ -21,11 +21,29 @@ const fmt = (value: number, unit: "H" | "F" | "ohm" | "Hz" | "A") => {
 function NumberField({ label, value, onChange, unit, hint, min = 0, max, step = "any" }: {
   label: ReactNode; value: number; onChange: (v: number) => void; unit: string; hint?: string; min?: number; max?: number; step?: number | "any";
 }) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
   return (
     <label className="field">
       <span className="field-label">{label}</span>
       <span className="input-shell">
-        <input type="number" value={value} min={min} max={max} step={step} onChange={(e) => onChange(Number(e.target.value))} />
+        <input
+          type="number"
+          value={draft}
+          min={min}
+          max={max}
+          step={step}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => {
+            const next = e.target.value;
+            setDraft(next);
+            if (next !== "") onChange(Number(next));
+          }}
+        />
         <span>{unit}</span>
       </span>
       {hint && <small>{hint}</small>}
@@ -34,9 +52,9 @@ function NumberField({ label, value, onChange, unit, hint, min = 0, max, step = 
 }
 
 export default function Home() {
-  const [topology, setTopology] = useState<Topology>("LCL");
-  const [phase, setPhase] = useState<"single" | "three">("three");
-  const [modulation, setModulation] = useState<Modulation>("svpwm");
+  const [topology, setTopology] = useState<Topology>("L");
+  const [phase, setPhase] = useState<"single" | "three">("single");
+  const [modulation, setModulation] = useState<Modulation>("bipolar");
   const [power, setPower] = useState(100);
   const [voltage, setVoltage] = useState(220);
   const [vdc, setVdc] = useState(700);
@@ -123,20 +141,20 @@ export default function Home() {
 
   const methodSteps = topology === "L"
     ? [
-        { title: "电流纹波确定电感下限", copy: "根据相制式、调制方式和允许峰峰值电流纹波，计算滤波电感的最小值。" },
-        { title: "基波压降确定电感上限", copy: "以允许基波压降约束电感最大值，保留输出电压裕量与动态响应能力。" },
+        { title: <>电流纹波确定 <i className="math">L</i> 下限</>, copy: "根据相制式、调制方式和允许峰峰值电流纹波，计算滤波电感的最小值。" },
+        { title: <>基波压降确定 <i className="math">L</i> 上限</>, copy: "以允许基波压降约束电感最大值，保留输出电压裕量与动态响应能力。" },
         { title: "上下限冲突校验", copy: "比较电感可选区间；若下限超过上限，应调整纹波、压降或开关频率等条件。" },
       ]
     : topology === "LC"
       ? [
-          { title: "纹波确定电感下限", copy: "先由开关电流纹波要求得到滤波电感下限，形成电感初选范围。" },
-          { title: "无功上限与谐振配置", copy: "由基波无功限制电容上限，并联合电感配置 LC 谐振频率，使其避开基波与开关频率。" },
+          { title: <>纹波确定 <i className="math">L<sub>f</sub></i> 下限</>, copy: "先由开关电流纹波要求得到滤波电感下限，形成电感初选范围。" },
+          { title: <>无功上限与 <i className="math">LC</i> 谐振配置</>, copy: "由基波无功限制电容上限，并联合电感配置 LC 谐振频率，使其避开基波与开关频率。" },
           { title: "压降与电压质量校核", copy: "检查电感基波压降；电压 THD 与动态性能需将初选参数带入 MATLAB / Simulink 验证。" },
         ]
       : [
-          { title: "纹波确定 Lᵢ 下限", copy: "依据逆变器侧允许电流纹波计算 Lᵢ 的最小值，确定主要滤波电感。" },
-          { title: "无功确定 Cƒ 上限", copy: "用基波无功占比限制滤波电容，避免电容电流和无功需求过大。" },
-          { title: "衰减目标确定 L𝗀", copy: "根据开关频率纹波衰减比例配置网侧电感 L𝗀，并进一步给出阻尼参数。" },
+          { title: <>纹波确定 <i className="math">L<sub>i</sub></i> 下限</>, copy: "依据逆变器侧允许电流纹波计算逆变器侧电感的最小值，确定主要滤波电感。" },
+          { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "用基波无功占比限制滤波电容，避免电容电流和无功需求过大。" },
+          { title: <>衰减目标确定 <i className="math">L<sub>g</sub></i></>, copy: "根据开关频率纹波衰减比例配置网侧电感，并进一步给出阻尼参数。" },
           { title: "综合性能校核", copy: "联合检查谐振频率、总电感基波压降；电压与电流 THD 留给 MATLAB / Simulink 验证。" },
         ];
 
@@ -155,7 +173,7 @@ export default function Home() {
 
       <section className="workspace">
         <div className="config-panel">
-          <div className="section-head"><div><span className="step">01</span><h2>选择滤波器拓扑</h2></div><span className="section-note">决定输入参数</span></div>
+          <div className="section-head"><div><span className="step">01</span><h2>选择滤波器拓扑</h2></div></div>
           <div className="topology-tabs" role="tablist" aria-label="滤波器拓扑">
             {(["L", "LC", "LCL"] as Topology[]).map((item) => (
               <button key={item} role="tab" aria-selected={topology === item} className={topology === item ? "active" : ""} onClick={() => setTopology(item)}>
@@ -182,29 +200,29 @@ export default function Home() {
             <div className="mini-group modulation"><span>调制方式</span><select value={modulation} onChange={(e) => setModulation(e.target.value as Modulation)}>{phase === "three" ? <><option value="svpwm">三相 SVPWM</option><option value="spwm3">三相 SPWM</option></> : <><option value="bipolar">单相全桥双极性 SPWM</option><option value="unipolar">单相全桥单极性 SPWM</option></>}</select></div>
           </div>
           <div className="field-grid">
-            <NumberField label={<>额定容量 S<sub>n</sub></>} value={power} onChange={setPower} unit="kVA" />
-            <NumberField label={phase === "three" ? <>额定相电压 U<sub>n</sub></> : <>额定电压 U<sub>n</sub></>} value={voltage} onChange={setVoltage} unit="V RMS" />
-            <NumberField label={<>直流母线电压 V<sub>dc</sub></>} value={vdc} onChange={setVdc} unit="V" />
-            <NumberField label={<>基波频率 f<sub>1</sub></>} value={f1} onChange={setF1} unit="Hz" />
-            <NumberField label={<>开关频率 f<sub>s</sub></>} value={fs} onChange={setFs} unit="kHz" />
+            <NumberField label={<>额定容量 <i className="math">S<sub>n</sub></i></>} value={power} onChange={setPower} unit="kVA" />
+            <NumberField label={phase === "three" ? <>额定相电压 <i className="math">U<sub>n</sub></i></> : <>额定电压 <i className="math">U<sub>n</sub></i></>} value={voltage} onChange={setVoltage} unit="V RMS" />
+            <NumberField label={<>直流母线电压 <i className="math">V<sub>dc</sub></i></>} value={vdc} onChange={setVdc} unit="V" />
+            <NumberField label={<>基波频率 <i className="math">f<sub>1</sub></i></>} value={f1} onChange={setF1} unit="Hz" />
+            <NumberField label={<>开关频率 <i className="math">f<sub>s</sub></i></>} value={fs} onChange={setFs} unit="kHz" />
             <NumberField label="功率因数" value={pf} onChange={setPf} unit="p.u." min={0.1} max={1} step={0.01} />
           </div>
 
           <div className="section-head second"><div><span className="step">03</span><h2>设定设计约束</h2></div><span className="section-note">已填入文档建议值</span></div>
           <div className="constraint-grid">
-            <NumberField label="允许电流纹波 α" value={ripple} onChange={setRipple} unit="%" hint="建议 10%–30%" min={1} max={50} />
-            <NumberField label="允许基波压降 k" value={drop} onChange={setDrop} unit="%" hint="建议 5%–8%" min={1} max={20} />
-            {topology !== "L" && <NumberField label="电容无功上限 β" value={reactive} onChange={setReactive} unit="%" hint={topology === "LCL" ? "LCL 可放宽至 15%" : "建议 3%–5%"} min={1} max={15} />}
-            {topology === "LCL" && <NumberField label="开关纹波衰减 δ" value={attenuation} onChange={setAttenuation} unit="%" hint="建议 5%–20%" min={1} max={50} />}
-            {topology === "LCL" && <NumberField label="阻尼系数 ξ" value={damping} onChange={setDamping} unit="" hint="经验值 0.0588–0.125" min={0.01} max={1} step={0.001} />}
+            <NumberField label={<>允许电流纹波 <i className="math">α</i></>} value={ripple} onChange={setRipple} unit="%" hint="建议 10%–30%" min={1} max={50} />
+            <NumberField label={<>允许基波压降 <i className="math">k</i></>} value={drop} onChange={setDrop} unit="%" hint="建议 5%–8%" min={1} max={20} />
+            {topology !== "L" && <NumberField label={<>电容无功上限 <i className="math">β</i></>} value={reactive} onChange={setReactive} unit="%" hint={topology === "LCL" ? "LCL 可放宽至 15%" : "建议 3%–5%"} min={1} max={15} />}
+            {topology === "LCL" && <NumberField label={<>开关纹波衰减 <i className="math">δ</i></>} value={attenuation} onChange={setAttenuation} unit="%" hint="建议 5%–20%" min={1} max={50} />}
+            {topology === "LCL" && <NumberField label={<>阻尼系数 <i className="math">ξ</i></>} value={damping} onChange={setDamping} unit="" hint="经验值 0.0588–0.125" min={0.01} max={1} step={0.001} />}
           </div>
         </div>
 
         <aside className="results">
           <div className="result-top"><div><span className="live-dot" /> 实时计算结果</div><span className={result.feasible ? "status ok" : "status warn"}>{result.feasible ? "参数可行" : "需要调整"}</span></div>
           <div className="current-summary">
-            <div><span>额定电流 I<sub>n</sub></span><strong>{fmt(result.current, "A")}</strong></div>
-            <div><span>纹波峰峰值 ΔI<sub>pp</sub></span><strong>{fmt(result.deltaI, "A")}</strong></div>
+            <div><span>额定电流 <i className="math">I<sub>n</sub></i></span><strong>{fmt(result.current, "A")}</strong></div>
+            <div><span>纹波电流峰峰值 <i className="math">ΔI<sub>pp</sub></i></span><strong>{fmt(result.deltaI, "A")}</strong></div>
           </div>
           <div className="result-cards">
             {resultCards.map((card, index) => <article key={card.key}><span className="symbol"><i>{resultSymbols[index][0]}</i>{resultSymbols[index][1] && <sub>{resultSymbols[index][1]}</sub>}</span><div><small>{card.label}</small><strong>{card.value}</strong><p>{card.sub}</p></div></article>)}
@@ -215,12 +233,12 @@ export default function Home() {
       </section>
 
       <section id="method" className="method">
-        <div><p className="eyebrow">{topology} · CALCULATION LOGIC</p><h2>结果从哪里来</h2><p className="method-lead">当前展示 {topology} 型滤波器的参数确定与校核顺序。</p></div>
+        <div><p className="eyebrow">{topology} · CALCULATION LOGIC</p><h2>结果从哪里来</h2><p className="method-lead">当前展示 {topology} 型滤波器的参数设计依据。</p></div>
         <div className={`method-grid ${methodSteps.length === 3 ? "three" : "four"}`}>
-          {methodSteps.map((item, index) => <article key={item.title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3><p>{item.copy}</p></article>)}
+          {methodSteps.map((item, index) => <article key={index}><div className="method-card-head"><span className="method-index">{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3></div><p>{item.copy}</p></article>)}
         </div>
       </section>
-      <footer><span>FluxFilter · 两电平逆变器滤波器参数设计</span><span>结果用于工程初选，不替代仿真与认证</span></footer>
+      <footer><span>FluxFilter · 两电平逆变器滤波器参数设计</span><span>结果用于工程初选，不替代仿真</span></footer>
     </main>
   );
 }
