@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const title = "FluxFilter｜逆变器滤波器参数设计";
+const title = "Filter Designer｜逆变器滤波器参数设计";
 const description = "面向两电平逆变器的 L、LC、LCL 滤波器参数计算与工程约束校核工具。";
 const siteUrl = "https://tenlancion.github.io/inverter-filter-designer";
 
