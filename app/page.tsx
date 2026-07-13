@@ -133,7 +133,17 @@ export default function Home() {
           <div className="topology-tabs" role="tablist" aria-label="滤波器拓扑">
             {(["L", "LC", "LCL"] as Topology[]).map((item) => (
               <button key={item} role="tab" aria-selected={topology === item} className={topology === item ? "active" : ""} onClick={() => setTopology(item)}>
-                <span className={`circuit circuit-${item.toLowerCase()}`}><i /><b /><i /></span>
+                <span className={`circuit circuit-${item.toLowerCase()}`} aria-hidden="true">
+                  <span className="circuit-main">
+                    <i className="circuit-node" />
+                    <i className="circuit-wire" />
+                    <span className="circuit-coil"><i /><i /><i /><i /></span>
+                    {item === "LCL" && <><i className="circuit-wire circuit-junction-wire" /><span className="circuit-coil"><i /><i /><i /><i /></span></>}
+                    <i className="circuit-wire" />
+                    <i className="circuit-node" />
+                  </span>
+                  {item !== "L" && <span className="circuit-branch"><i className="branch-lead top" /><i className="capacitor-plate" /><i className="capacitor-plate" /><i className="branch-lead bottom" /><i className="circuit-node" /></span>}
+                </span>
                 <strong>{item} 型</strong><small>{item === "L" ? "简洁 · 电流纹波" : item === "LC" ? "电压品质 · 独立输出" : "高衰减 · 并网优选"}</small>
               </button>
             ))}
