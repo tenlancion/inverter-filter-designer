@@ -148,20 +148,21 @@ export default function Home() {
     : topology === "LC"
       ? [
           { title: <>纹波确定 <i className="math">L<sub>f</sub></i> 下限</>, copy: "先由开关电流纹波要求得到滤波电感下限，形成电感初选范围。" },
-          { title: <>无功上限与 <i className="math">LC</i> 谐振配置</>, copy: "由基波无功限制电容上限，并联合电感配置 LC 谐振频率，使其避开基波与开关频率。" },
-          { title: "压降与电压质量校核", copy: "检查电感基波压降；电压 THD 与动态性能需将初选参数带入 MATLAB / Simulink 验证。" },
+          { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "由基波无功功率占比限制滤波电容上限，避免电容电流及系统无功需求过大。" },
+          { title: "综合性能校核", copy: "联合校核 LC 谐振频率窗口与电感基波压降；电压 THD 和动态性能需将初选参数带入 MATLAB / Simulink 验证。" },
         ]
       : [
           { title: <>纹波确定 <i className="math">L<sub>i</sub></i> 下限</>, copy: "依据逆变器侧允许电流纹波计算逆变器侧电感的最小值，确定主要滤波电感。" },
           { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "用基波无功占比限制滤波电容，避免电容电流和无功需求过大。" },
           { title: <>衰减目标确定 <i className="math">L<sub>g</sub></i></>, copy: "根据开关频率纹波衰减比例配置网侧电感，并进一步给出阻尼参数。" },
-          { title: "综合性能校核", copy: "联合检查谐振频率、总电感基波压降；电压与电流 THD 留给 MATLAB / Simulink 验证。" },
+          { title: <>阻尼系数确定 <i className="math">R<sub>d</sub></i></>, copy: "依据谐振频率与阻尼系数计算阻尼电阻，用于抑制 LCL 滤波器的谐振峰。" },
+          { title: "综合性能校核", copy: "联合检查谐振频率窗口与总电感基波压降；电压、电流 THD 和动态性能留给 MATLAB / Simulink 验证。" },
         ];
 
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="FluxFilter 首页"><span className="brand-mark">F</span><span>FluxFilter</span></a>
+        <a className="brand" href="#top" aria-label="Filter Designer 首页"><span className="brand-mark">F</span><span>Filter Designer</span></a>
         <div className="source-pill"><span /> 基于设计文档公式集</div>
         <a className="ghost-link" href="#method">设计依据 ↗</a>
       </header>
@@ -234,11 +235,11 @@ export default function Home() {
 
       <section id="method" className="method">
         <div><p className="eyebrow">{topology} · CALCULATION LOGIC</p><h2>结果从哪里来</h2><p className="method-lead">当前展示 {topology} 型滤波器的参数设计依据。</p></div>
-        <div className={`method-grid ${methodSteps.length === 3 ? "three" : "four"}`}>
+        <div className={`method-grid ${methodSteps.length === 3 ? "three" : methodSteps.length === 5 ? "five" : "four"}`}>
           {methodSteps.map((item, index) => <article key={index}><div className="method-card-head"><span className="method-index">{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3></div><p>{item.copy}</p></article>)}
         </div>
       </section>
-      <footer><span>FluxFilter · 两电平逆变器滤波器参数设计</span><span>结果用于工程初选，不替代仿真</span></footer>
+      <footer><span>Filter Designer · 两电平逆变器滤波器参数设计</span><span>结果用于工程初选，不替代仿真</span></footer>
     </main>
   );
 }
