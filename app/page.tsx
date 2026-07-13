@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 type Topology = "L" | "LC" | "LCL";
 type Modulation = "bipolar" | "unipolar" | "spwm3" | "svpwm";
@@ -19,7 +19,7 @@ const fmt = (value: number, unit: "H" | "F" | "ohm" | "Hz" | "A") => {
 };
 
 function NumberField({ label, value, onChange, unit, hint, min = 0, max, step = "any" }: {
-  label: string; value: number; onChange: (v: number) => void; unit: string; hint?: string; min?: number; max?: number; step?: number | "any";
+  label: ReactNode; value: number; onChange: (v: number) => void; unit: string; hint?: string; min?: number; max?: number; step?: number | "any";
 }) {
   return (
     <label className="field">
@@ -38,7 +38,7 @@ export default function Home() {
   const [phase, setPhase] = useState<"single" | "three">("three");
   const [modulation, setModulation] = useState<Modulation>("svpwm");
   const [power, setPower] = useState(100);
-  const [voltage, setVoltage] = useState(380);
+  const [voltage, setVoltage] = useState(220);
   const [vdc, setVdc] = useState(700);
   const [f1, setF1] = useState(50);
   const [fs, setFs] = useState(10);
@@ -55,7 +55,7 @@ export default function Home() {
     const switching = fs * 1000;
     const omega1 = 2 * Math.PI * f1;
     const omegaSw = 2 * Math.PI * switching;
-    const current = phase === "three" ? S / (Math.sqrt(3) * voltage) : S / voltage;
+    const current = phase === "three" ? S / (3 * voltage) : S / voltage;
     const deltaI = current * ripple / 100;
     const lByMod: Record<Modulation, number> = {
       bipolar: vdc / (2 * switching * deltaI),
@@ -64,11 +64,12 @@ export default function Home() {
       svpwm: vdc / (6 * switching * deltaI),
     };
     const lMin = lByMod[modulation];
-    const lMax = drop / 100 * voltage ** 2 / (2 * Math.PI * f1 * P);
+    const voltageBaseSquared = phase === "three" ? 3 * voltage ** 2 : voltage ** 2;
+    const lMax = drop / 100 * voltageBaseSquared / (2 * Math.PI * f1 * P);
     const lChosen = Math.min(lMin * 1.2, lMax * 0.92);
     const beta = reactive / 100;
     const cMax = phase === "three"
-      ? beta * S / (3 * omega1 * (voltage / Math.sqrt(3)) ** 2)
+      ? beta * S / (3 * omega1 * voltage ** 2)
       : beta * S / (omega1 * voltage ** 2);
     const lcTarget = Math.sqrt(10 * f1 * switching / 5);
     const cForTarget = 1 / ((2 * Math.PI * lcTarget) ** 2 * lChosen);
@@ -156,15 +157,15 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="section-head second"><div><span className="step">02</span><h2>输入设计工况</h2></div><button className="reset" onClick={() => { setPower(100); setVoltage(380); setVdc(700); setFs(10); setRipple(20); }}>恢复典型值</button></div>
+          <div className="section-head second"><div><span className="step">02</span><h2>输入设计工况</h2></div><button className="reset" onClick={() => { setPower(100); setVoltage(220); setVdc(700); setFs(10); setRipple(20); }}>恢复典型值</button></div>
           <div className="segmented-row">
-            <div className="mini-group"><span>系统制式</span><div className="segmented"><button className={phase === "single" ? "on" : ""} onClick={() => { setPhase("single"); setVoltage(220); setModulation("bipolar"); }}>单相</button><button className={phase === "three" ? "on" : ""} onClick={() => { setPhase("three"); setVoltage(380); setModulation("svpwm"); }}>三相</button></div></div>
+            <div className="mini-group"><span>系统制式</span><div className="segmented"><button className={phase === "single" ? "on" : ""} onClick={() => { setPhase("single"); setVoltage(220); setModulation("bipolar"); }}>单相</button><button className={phase === "three" ? "on" : ""} onClick={() => { setPhase("three"); setVoltage(220); setModulation("svpwm"); }}>三相</button></div></div>
             <div className="mini-group modulation"><span>调制方式</span><select value={modulation} onChange={(e) => setModulation(e.target.value as Modulation)}>{phase === "three" ? <><option value="svpwm">三相 SVPWM</option><option value="spwm3">三相 SPWM</option></> : <><option value="bipolar">单相全桥双极性 SPWM</option><option value="unipolar">单相全桥单极性 SPWM</option></>}</select></div>
           </div>
           <div className="field-grid">
             <NumberField label="额定容量 Sₙ" value={power} onChange={setPower} unit="kVA" />
-            <NumberField label={phase === "three" ? "额定线电压 Uₗₗ" : "额定电压 Uₙ"} value={voltage} onChange={setVoltage} unit="V RMS" />
-            <NumberField label="直流母线电压 V𝖽𝖼" value={vdc} onChange={setVdc} unit="V" />
+            <NumberField label={phase === "three" ? "额定相电压 Uₙ" : "额定电压 Uₙ"} value={voltage} onChange={setVoltage} unit="V RMS" />
+            <NumberField label={<>直流母线电压 V<sub>dc</sub></>} value={vdc} onChange={setVdc} unit="V" />
             <NumberField label="基波频率 ƒ₁" value={f1} onChange={setF1} unit="Hz" />
             <NumberField label="开关频率 ƒₛ" value={fs} onChange={setFs} unit="kHz" />
             <NumberField label="功率因数" value={pf} onChange={setPf} unit="p.u." min={0.1} max={1} step={0.01} />
