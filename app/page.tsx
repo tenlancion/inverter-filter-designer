@@ -121,6 +121,25 @@ export default function Home() {
       ? [["L", "f"], ["C", "f"], ["f", "r"]]
       : [["L", "i"], ["C", "f"], ["L", "g"], ["R", "d"]];
 
+  const methodSteps = topology === "L"
+    ? [
+        { title: "电流纹波确定电感下限", copy: "根据相制式、调制方式和允许峰峰值电流纹波，计算滤波电感的最小值。" },
+        { title: "基波压降确定电感上限", copy: "以允许基波压降约束电感最大值，保留输出电压裕量与动态响应能力。" },
+        { title: "上下限冲突校验", copy: "比较电感可选区间；若下限超过上限，应调整纹波、压降或开关频率等条件。" },
+      ]
+    : topology === "LC"
+      ? [
+          { title: "纹波确定电感下限", copy: "先由开关电流纹波要求得到滤波电感下限，形成电感初选范围。" },
+          { title: "无功上限与谐振配置", copy: "由基波无功限制电容上限，并联合电感配置 LC 谐振频率，使其避开基波与开关频率。" },
+          { title: "压降与电压质量校核", copy: "检查电感基波压降；电压 THD 与动态性能需将初选参数带入 MATLAB / Simulink 验证。" },
+        ]
+      : [
+          { title: "纹波确定 Lᵢ 下限", copy: "依据逆变器侧允许电流纹波计算 Lᵢ 的最小值，确定主要滤波电感。" },
+          { title: "无功确定 Cƒ 上限", copy: "用基波无功占比限制滤波电容，避免电容电流和无功需求过大。" },
+          { title: "衰减目标确定 L𝗀", copy: "根据开关频率纹波衰减比例配置网侧电感 L𝗀，并进一步给出阻尼参数。" },
+          { title: "综合性能校核", copy: "联合检查谐振频率、总电感基波压降；电压与电流 THD 留给 MATLAB / Simulink 验证。" },
+        ];
+
   return (
     <main>
       <header className="topbar">
@@ -136,7 +155,7 @@ export default function Home() {
 
       <section className="workspace">
         <div className="config-panel">
-          <div className="section-head"><div><span className="step">01</span><h2>选择滤波器拓扑</h2></div><span className="section-note">决定参数与校核路径</span></div>
+          <div className="section-head"><div><span className="step">01</span><h2>选择滤波器拓扑</h2></div><span className="section-note">决定输入参数</span></div>
           <div className="topology-tabs" role="tablist" aria-label="滤波器拓扑">
             {(["L", "LC", "LCL"] as Topology[]).map((item) => (
               <button key={item} role="tab" aria-selected={topology === item} className={topology === item ? "active" : ""} onClick={() => setTopology(item)}>
@@ -163,11 +182,11 @@ export default function Home() {
             <div className="mini-group modulation"><span>调制方式</span><select value={modulation} onChange={(e) => setModulation(e.target.value as Modulation)}>{phase === "three" ? <><option value="svpwm">三相 SVPWM</option><option value="spwm3">三相 SPWM</option></> : <><option value="bipolar">单相全桥双极性 SPWM</option><option value="unipolar">单相全桥单极性 SPWM</option></>}</select></div>
           </div>
           <div className="field-grid">
-            <NumberField label="额定容量 Sₙ" value={power} onChange={setPower} unit="kVA" />
-            <NumberField label={phase === "three" ? "额定相电压 Uₙ" : "额定电压 Uₙ"} value={voltage} onChange={setVoltage} unit="V RMS" />
+            <NumberField label={<>额定容量 S<sub>n</sub></>} value={power} onChange={setPower} unit="kVA" />
+            <NumberField label={phase === "three" ? <>额定相电压 U<sub>n</sub></> : <>额定电压 U<sub>n</sub></>} value={voltage} onChange={setVoltage} unit="V RMS" />
             <NumberField label={<>直流母线电压 V<sub>dc</sub></>} value={vdc} onChange={setVdc} unit="V" />
-            <NumberField label="基波频率 ƒ₁" value={f1} onChange={setF1} unit="Hz" />
-            <NumberField label="开关频率 ƒₛ" value={fs} onChange={setFs} unit="kHz" />
+            <NumberField label={<>基波频率 f<sub>1</sub></>} value={f1} onChange={setF1} unit="Hz" />
+            <NumberField label={<>开关频率 f<sub>s</sub></>} value={fs} onChange={setFs} unit="kHz" />
             <NumberField label="功率因数" value={pf} onChange={setPf} unit="p.u." min={0.1} max={1} step={0.01} />
           </div>
 
@@ -183,7 +202,10 @@ export default function Home() {
 
         <aside className="results">
           <div className="result-top"><div><span className="live-dot" /> 实时计算结果</div><span className={result.feasible ? "status ok" : "status warn"}>{result.feasible ? "参数可行" : "需要调整"}</span></div>
-          <div className="current-strip"><span>额定电流 Iₙ</span><strong>{fmt(result.current, "A")}</strong><small>纹波峰峰值 {fmt(result.deltaI, "A")}</small></div>
+          <div className="current-summary">
+            <div><span>额定电流 I<sub>n</sub></span><strong>{fmt(result.current, "A")}</strong></div>
+            <div><span>纹波峰峰值 ΔI<sub>pp</sub></span><strong>{fmt(result.deltaI, "A")}</strong></div>
+          </div>
           <div className="result-cards">
             {resultCards.map((card, index) => <article key={card.key}><span className="symbol"><i>{resultSymbols[index][0]}</i>{resultSymbols[index][1] && <sub>{resultSymbols[index][1]}</sub>}</span><div><small>{card.label}</small><strong>{card.value}</strong><p>{card.sub}</p></div></article>)}
           </div>
@@ -193,12 +215,9 @@ export default function Home() {
       </section>
 
       <section id="method" className="method">
-        <div><p className="eyebrow">CALCULATION LOGIC</p><h2>结果从哪里来</h2></div>
-        <div className="method-grid">
-          <article><span>01</span><h3>纹波定电感下限</h3><p>依据相制式与 SPWM / SVPWM 调制方式，按允许峰峰值电流纹波计算最小电感。</p></article>
-          <article><span>02</span><h3>压降定电感上限</h3><p>用基波电感压降占比约束总电感，避免输出电压裕量和动态响应被过度消耗。</p></article>
-          <article><span>03</span><h3>无功与谐振联合校核</h3><p>LC / LCL 电容受基波无功限制，并检查谐振频率是否落在合理窗口。</p></article>
-          <article><span>04</span><h3>LCL 衰减与阻尼</h3><p>由开关频率电流衰减目标求网侧电感，再根据阻尼系数给出串联阻尼电阻。</p></article>
+        <div><p className="eyebrow">{topology} · CALCULATION LOGIC</p><h2>结果从哪里来</h2><p className="method-lead">当前展示 {topology} 型滤波器的参数确定与校核顺序。</p></div>
+        <div className={`method-grid ${methodSteps.length === 3 ? "three" : "four"}`}>
+          {methodSteps.map((item, index) => <article key={item.title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3><p>{item.copy}</p></article>)}
         </div>
       </section>
       <footer><span>FluxFilter · 两电平逆变器滤波器参数设计</span><span>结果用于工程初选，不替代仿真与认证</span></footer>
