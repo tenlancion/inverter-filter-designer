@@ -194,7 +194,7 @@ export default function Home() {
 
       <section id="top" className="hero">
         <div className="hero-title"><p className="eyebrow">POWER ELECTRONICS · DESIGN STUDIO</p><h1>两电平逆变器<br /><em>滤波器参数设计</em></h1><span className="author-signature">by LanZimo</span></div>
-        <p className="hero-copy">面向 L、LC、LCL 滤波器，快速完成参数设计与约束校核。</p>
+        <p className="hero-copy">面向 L、LC、LCL 滤波器，快速完成参数设计与约束校验。</p>
       </section>
 
       <section className="workspace">
