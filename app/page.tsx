@@ -109,7 +109,7 @@ export default function Home() {
     const lMin = lByMod[modulation];
     const voltageBaseSquared = phase === "three" ? 3 * voltage ** 2 : voltage ** 2;
     const lMax = drop / 100 * voltageBaseSquared / (2 * Math.PI * f1 * P);
-    const lChosen = Math.min(lMin * 1.2, lMax * 0.92);
+    const lChosen = lMin > lMax ? lMin : Math.min(lMin * 1.2, lMax * 0.92);
     const beta = reactive / 100;
     const cMax = phase === "three"
       ? beta * S / (3 * omega1 * voltage ** 2)
@@ -193,7 +193,7 @@ export default function Home() {
       </header>
 
       <section id="top" className="hero">
-        <div className="hero-title"><p className="eyebrow">POWER ELECTRONICS · DESIGN STUDIO</p><h1>两电平逆变器<br /><em>滤波器参数设计</em></h1><span className="author-signature" role="img" aria-label="by 兰" /></div>
+        <div className="hero-title"><p className="eyebrow">POWER ELECTRONICS · DESIGN STUDIO</p><h1>两电平逆变器<br /><em>滤波器参数设计</em></h1><span className="author-signature">by LanZimo</span></div>
         <p className="hero-copy">面向 L、LC、LCL 滤波器，快速完成参数设计与约束校核。</p>
       </section>
 
