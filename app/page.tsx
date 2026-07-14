@@ -51,6 +51,31 @@ function NumberField({ label, value, onChange, unit, hint, min = 0, max, step = 
   );
 }
 
+function TopologyDiagram({ topology }: { topology: Topology }) {
+  const coil = (start: number) =>
+    `M ${start} 12 C ${start} 5 ${start + 12} 5 ${start + 12} 12 C ${start + 12} 5 ${start + 24} 5 ${start + 24} 12 C ${start + 24} 5 ${start + 36} 5 ${start + 36} 12 C ${start + 36} 5 ${start + 48} 5 ${start + 48} 12`;
+
+  const mainPath = topology === "L"
+    ? `M 25 12 H 44 ${coil(44)} H 111`
+    : topology === "LC"
+      ? `M 13 12 H 26 ${coil(26)} H 123`
+      : `M 3 12 H 12 ${coil(12)} H 76 ${coil(76)} H 133`;
+
+  const nodes = topology === "L" ? [25, 111] : topology === "LC" ? [13, 123] : [3, 133];
+  const branchX = topology === "LC" ? 92 : 68;
+
+  return (
+    <svg className="circuit-diagram" viewBox="0 0 136 34" aria-hidden="true">
+      <path d={mainPath} />
+      {nodes.map((x) => <circle key={x} cx={x} cy="12" r="2.25" />)}
+      {topology !== "L" && <>
+        <path d={`M ${branchX} 12 V 18 M ${branchX - 9} 18 H ${branchX + 9} M ${branchX - 9} 22 H ${branchX + 9} M ${branchX} 22 V 31`} />
+        <circle cx={branchX} cy="31" r="2.25" />
+      </>}
+    </svg>
+  );
+}
+
 export default function Home() {
   const [topology, setTopology] = useState<Topology>("L");
   const [phase, setPhase] = useState<"single" | "three">("single");
@@ -123,12 +148,12 @@ export default function Home() {
     : topology === "LC"
       ? [
           { key: "Lƒ", label: "滤波电感", value: fmt(result.lChosen, "H"), sub: `下限 ${fmt(result.lMin, "H")}` },
-          { key: "Cƒ", label: "滤波电容", value: fmt(result.cLc, "F"), sub: `无功上限 ${fmt(result.cMax, "F")}` },
+          { key: "Cƒ", label: "滤波电容", value: fmt(result.cLc, "F"), sub: `上限 ${fmt(result.cMax, "F")}` },
           { key: "ƒ₀", label: "谐振频率", value: fmt(result.fLc, "Hz"), sub: "基于当前 L、C 计算" },
         ]
       : [
-          { key: "Lᵢ", label: "逆变器侧电感", value: fmt(result.lChosen, "H"), sub: `纹波下限 ${fmt(result.lMin, "H")}` },
-          { key: "Cƒ", label: "滤波电容", value: fmt(result.cLcl, "F"), sub: `无功上限 ${fmt(result.cMax, "F")}` },
+          { key: "Lᵢ", label: "逆变器侧电感", value: fmt(result.lChosen, "H"), sub: `下限 ${fmt(result.lMin, "H")}` },
+          { key: "Cƒ", label: "滤波电容", value: fmt(result.cLcl, "F"), sub: `上限 ${fmt(result.cMax, "F")}` },
           { key: "L𝗀", label: "网侧电感", value: fmt(result.lg, "H"), sub: `目标衰减 ${attenuation}%` },
           { key: "R𝖽", label: "阻尼电阻", value: fmt(result.rd, "ohm"), sub: `阻尼系数 ξ = ${damping}` },
         ];
@@ -148,13 +173,13 @@ export default function Home() {
     : topology === "LC"
       ? [
           { title: <>纹波确定 <i className="math">L<sub>f</sub></i> 下限</>, copy: "先由开关电流纹波要求得到滤波电感下限，形成电感初选范围。" },
-          { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "由基波无功功率占比限制滤波电容上限，避免电容电流及系统无功需求过大。" },
+          { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "由基波无功功率占比限制滤波电容上限，避免系统无功需求过大。" },
           { title: "综合性能校核", copy: "联合校核 LC 谐振频率窗口与电感基波压降；电压 THD 和动态性能需将初选参数带入 MATLAB / Simulink 验证。" },
         ]
       : [
           { title: <>纹波确定 <i className="math">L<sub>i</sub></i> 下限</>, copy: "依据逆变器侧允许电流纹波计算逆变器侧电感的最小值，确定主要滤波电感。" },
-          { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "用基波无功占比限制滤波电容，避免电容电流和无功需求过大。" },
-          { title: <>衰减目标确定 <i className="math">L<sub>g</sub></i></>, copy: "根据开关频率纹波衰减比例配置网侧电感，并进一步给出阻尼参数。" },
+          { title: <>无功确定 <i className="math">C<sub>f</sub></i> 上限</>, copy: "用基波无功占比限制滤波电容，避免无功需求过大。" },
+          { title: <>衰减目标确定 <i className="math">L<sub>g</sub></i></>, copy: "根据开关频率纹波衰减比例配置网侧电感。" },
           { title: <>阻尼系数确定 <i className="math">R<sub>d</sub></i></>, copy: "依据谐振频率与阻尼系数计算阻尼电阻，用于抑制 LCL 滤波器的谐振峰。" },
           { title: "综合性能校核", copy: "联合检查谐振频率窗口与总电感基波压降；电压、电流 THD 和动态性能留给 MATLAB / Simulink 验证。" },
         ];
@@ -168,7 +193,7 @@ export default function Home() {
       </header>
 
       <section id="top" className="hero">
-        <div><p className="eyebrow">POWER ELECTRONICS · DESIGN STUDIO</p><h1>两电平逆变器<br /><em>滤波器参数设计</em></h1></div>
+        <div className="hero-title"><p className="eyebrow">POWER ELECTRONICS · DESIGN STUDIO</p><h1>两电平逆变器<br /><em>滤波器参数设计</em></h1><span className="author-signature"><small>by</small> LanZimo</span></div>
         <p className="hero-copy">面向 L、LC、LCL 滤波器，快速完成参数设计与约束校核。</p>
       </section>
 
@@ -178,19 +203,8 @@ export default function Home() {
           <div className="topology-tabs" role="tablist" aria-label="滤波器拓扑">
             {(["L", "LC", "LCL"] as Topology[]).map((item) => (
               <button key={item} role="tab" aria-selected={topology === item} className={topology === item ? "active" : ""} onClick={() => setTopology(item)}>
-                <span className={`circuit circuit-${item.toLowerCase()}`} aria-hidden="true">
-                  <span className="circuit-main">
-                    <i className="circuit-node" />
-                    <i className="circuit-wire" />
-                    <span className="circuit-coil"><i /><i /><i /><i /></span>
-                    {item === "LC" && <i className="circuit-wire circuit-lc-spacer" />}
-                    {item === "LCL" && <><i className="circuit-wire circuit-junction-wire" /><span className="circuit-coil"><i /><i /><i /><i /></span></>}
-                    <i className="circuit-wire" />
-                    <i className="circuit-node" />
-                  </span>
-                  {item !== "L" && <span className="circuit-branch"><i className="branch-lead top" /><i className="capacitor-plate" /><i className="capacitor-plate" /><i className="branch-lead bottom" /><i className="circuit-node" /></span>}
-                </span>
-                <strong>{item} 型</strong><small>{item === "L" ? "简洁 · 电流纹波" : item === "LC" ? "电压品质 · 独立输出" : "高衰减 · 并网优选"}</small>
+                <TopologyDiagram topology={item} />
+                <strong>{item} 型</strong><small>{item === "L" ? "简洁 · 电流纹波" : item === "LC" ? "注重电压品质" : "高衰减 · 并网优选"}</small>
               </button>
             ))}
           </div>
@@ -212,10 +226,10 @@ export default function Home() {
           <div className="section-head second"><div><span className="step">03</span><h2>设定设计约束</h2></div><span className="section-note">已填入文档建议值</span></div>
           <div className="constraint-grid">
             <NumberField label={<>允许电流纹波 <i className="math">α</i></>} value={ripple} onChange={setRipple} unit="%" hint="建议 10%–30%" min={1} max={50} />
-            <NumberField label={<>允许基波压降 <i className="math">k</i></>} value={drop} onChange={setDrop} unit="%" hint="建议 5%–8%" min={1} max={20} />
+            <NumberField label={<>允许基波压降 <i className="math">k</i></>} value={drop} onChange={setDrop} unit="%" hint="建议 3%–10%" min={1} max={20} />
             {topology !== "L" && <NumberField label={<>电容无功上限 <i className="math">β</i></>} value={reactive} onChange={setReactive} unit="%" hint={topology === "LCL" ? "LCL 可放宽至 15%" : "建议 3%–5%"} min={1} max={15} />}
             {topology === "LCL" && <NumberField label={<>开关纹波衰减 <i className="math">δ</i></>} value={attenuation} onChange={setAttenuation} unit="%" hint="建议 5%–20%" min={1} max={50} />}
-            {topology === "LCL" && <NumberField label={<>阻尼系数 <i className="math">ξ</i></>} value={damping} onChange={setDamping} unit="" hint="经验值 0.0588–0.125" min={0.01} max={1} step={0.001} />}
+            {topology === "LCL" && <NumberField label={<>阻尼系数 <i className="math">ξ</i></>} value={damping} onChange={setDamping} unit="" hint="经验值 1/6 或 1/8" min={0.01} max={1} step={0.001} />}
           </div>
         </div>
 
