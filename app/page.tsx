@@ -169,7 +169,7 @@ export default function Home() {
 
       <section id="top" className="hero">
         <div><p className="eyebrow">POWER ELECTRONICS · DESIGN STUDIO</p><h1>两电平逆变器<br /><em>滤波器参数设计</em></h1></div>
-        <p className="hero-copy">从工况输入到参数建议与约束校核。覆盖 L、LC、LCL 拓扑，让每一个结果都可解释、可复核。</p>
+        <p className="hero-copy">面向 L、LC、LCL 滤波器，快速完成参数设计与约束校核。</p>
       </section>
 
       <section className="workspace">
