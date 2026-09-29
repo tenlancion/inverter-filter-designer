@@ -123,7 +123,10 @@ export default function Home() {
     const cLcl = Math.min(cMax * 0.9, Math.max(cMax * 0.55, minCLcl));
     const denominator = lChosen * cLcl * omegaSw ** 2 - 1;
     const lgRaw = denominator > 0 ? lChosen * (1 + 1 / (attenuation / 100)) / denominator : NaN;
-    const lg = Math.min(lgRaw, Math.max(lMax - lChosen, 0));
+    // Keep the formula-derived grid-side inductance visible even when the
+    // total-inductance voltage-drop constraint is violated. Feasibility is
+    // reported separately by the constraint checks below.
+    const lg = lgRaw;
     const fLcl = Number.isFinite(lg) && lg > 0
       ? 1 / (2 * Math.PI) * Math.sqrt((lChosen + lg) / (lChosen * lg * cLcl))
       : NaN;
@@ -134,7 +137,13 @@ export default function Home() {
     const resHigh = topology === "LC" ? switching / 5 : switching / 2;
     const checks = [
       { label: "电感纹波下限", ok: lChosen >= lMin, value: `${fmt(lChosen, "H")} ≥ ${fmt(lMin, "H")}` },
-      { label: "基波压降上限", ok: topology === "LCL" ? lChosen + (lg || 0) <= lMax : lChosen <= lMax, value: `上限 ${fmt(lMax, "H")}` },
+      {
+        label: topology === "LCL" ? "总电感基波压降上限" : "基波压降上限",
+        ok: topology === "LCL" ? lChosen + lg <= lMax : lChosen <= lMax,
+        value: topology === "LCL"
+          ? `总电感 ${fmt(lChosen + lg, "H")} · 上限 ${fmt(lMax, "H")}`
+          : `上限 ${fmt(lMax, "H")}`,
+      },
       ...(topology !== "L" ? [
         { label: "谐振频率窗口", ok: resonance >= 10 * f1 && resonance <= resHigh, value: `${fmt(resonance, "Hz")} · 目标 ${fmt(10 * f1, "Hz")}–${fmt(resHigh, "Hz")}` },
         { label: "电容无功占比", ok: qRatio <= reactive + 0.01, value: `${qRatio.toFixed(2)}% ≤ ${reactive}%` },
